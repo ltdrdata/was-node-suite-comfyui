@@ -7414,21 +7414,15 @@ class WAS_Image_Save:
 
         # Find existing counter values
         if filename_number_start == 'true':
-            pattern = f"(\\d+){re.escape(delimiter)}{re.escape(filename_prefix)}"
+            pattern = f"^(\\d+){re.escape(delimiter)}"
         else:
-            pattern = f"{re.escape(filename_prefix)}{re.escape(delimiter)}(\\d+)"
+            pattern = f"{re.escape(delimiter)}(\\d+)$"
         existing_counters = [
             int(re.search(pattern, filename).group(1))
             for filename in os.listdir(output_path)
             if re.match(pattern, os.path.basename(filename))
         ]
         existing_counters.sort(reverse=True)
-
-        # Set initial counter value
-        if existing_counters:
-            counter = existing_counters[0] + 1
-        else:
-            counter = 1
 
         # Set initial counter value
         if existing_counters:
