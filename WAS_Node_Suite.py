@@ -364,13 +364,53 @@ if was_config.__contains__('webui_styles'):
 
 # Whitelist dir check
 def isAllowedFilepath(x):
-    x = os.path.abspath(x)
+    target_path = os.path.abspath(os.path.normpath(str(x)))
+
+    matched_base = None
+    checked_dirs = []
+    skipped_dirs = []
+
     for base in allowed_dirs:
-        print(f"AAA: {x} / {base}")
-        print(f"BBB: {os.path.commonpath([x, base])}")
-        base = os.path.abspath(base)
-        if os.path.commonpath([x, base]) == base:
-            return True
+        base_path = os.path.abspath(os.path.normpath(str(base)))
+        checked_dirs.append(base_path)
+
+        try:
+            common_path = os.path.commonpath([target_path, base_path])
+        except ValueError:
+            target_drive = os.path.splitdrive(target_path)[0] or "(no drive)"
+            base_drive = os.path.splitdrive(base_path)[0] or "(no drive)"
+
+            skipped_dirs.append(
+                f"{base_path}  [different drive: target={target_drive}, whitelist={base_drive}]"
+            )
+            continue
+
+        if common_path == base_path:
+            matched_base = base_path
+            break
+
+    if matched_base:
+        return True
+
+    print("[WAS Node Suite] File path blocked by whitelist")
+    print(f"  Target path : {target_path}")
+
+    if checked_dirs:
+        print("  Allowed directories:")
+        for allowed_path in checked_dirs:
+            print(f"    - {allowed_path}")
+    else:
+        print("  Allowed directories: none")
+
+    if skipped_dirs:
+        print("  Skipped because drive letters do not match:")
+        for skipped_path in skipped_dirs:
+            print(f"    - {skipped_path}")
+
+    print("  Fix:")
+    print("    Add the target folder, or one of its parent folders, to:")
+    print("    ComfyUI\\user\\default\\was-node-suite\\whitelist-dirs.list")
+
     return False
 
 
