@@ -208,7 +208,7 @@ was_conf_template = {
                     "run_requirements": True,
                     "suppress_uncomfy_warnings": True,
                     "show_startup_junk": True,
-                    "show_inspiration_quote": True,
+                    "show_inspiration_quote": False,
                     "text_nodes_type": "STRING",
                     "webui_styles": None,
                     "webui_styles_persistent_update": True,

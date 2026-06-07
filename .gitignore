@@ -164,3 +164,4 @@ cache/
 *.latent
 *.image
 *.conditioning
+/nbproject/
