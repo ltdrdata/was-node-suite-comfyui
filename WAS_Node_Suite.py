@@ -10845,10 +10845,14 @@ class WAS_Text_Save:
     FUNCTION = "save_text_file"
     CATEGORY = "WAS Suite/IO"
 
-    def save_text_file(self, text, path, filename_prefix='ComfyUI', filename_delimiter='_', 
+    def save_text_file(self, text, path, filename_prefix='ComfyUI', filename_delimiter='_',
                        filename_number_padding=4, file_extension='.txt', encoding='utf-8', filename_suffix=''):
         tokens = TextTokens()
         path = tokens.parseTokens(path)
+        # Make relative paths stable by anchoring them to ComfyUI's output dir
+        # instead of the process CWD (which varies based on how ComfyUI is launched).
+        if not os.path.isabs(path):
+            path = os.path.abspath(os.path.join(comfy_paths.output_directory, path.lstrip("./\\")))
         filename_prefix = tokens.parseTokens(filename_prefix)
 
         if not os.path.exists(path):
