@@ -7449,7 +7449,7 @@ class WAS_Image_Save:
             img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
 
             # Delegate metadata/pnginfo
-            if extension == 'webp':
+            if extension in ['webp', 'jpg', 'jpeg']:
                 img_exif = img.getexif()
                 if embed_workflow == 'true':
                     workflow_metadata = ''
@@ -7462,6 +7462,18 @@ class WAS_Image_Save:
                             workflow_metadata += json.dumps(extra_pnginfo[x])
                     img_exif[0x010e] = "Workflow:" + workflow_metadata
                 exif_data = img_exif.tobytes()
+                
+                if extension in ['jpg', 'jpeg'] and len(exif_data) > 65533:
+                    if 0x010e in img_exif:
+                        del img_exif[0x010e]
+                        try:
+                            exif_data = img_exif.tobytes()
+                        except Exception:
+                            pass
+                            
+                    if len(exif_data) > 65533:
+                        cstr(f"Warning: Prompt EXIF data is too large ({len(exif_data)} bytes) for JPEG format. Saving without metadata. Use PNG or WebP for large workflows.").warning.print()
+                        exif_data = b""
             else:
                 metadata = PngInfo()
                 if embed_workflow == 'true':
@@ -7488,7 +7500,7 @@ class WAS_Image_Save:
                 output_file = os.path.abspath(os.path.join(output_path, file))
                 if extension in ["jpg", "jpeg"]:
                     img.save(output_file,
-                             quality=quality, optimize=optimize_image, dpi=(dpi, dpi))
+                             quality=quality, optimize=optimize_image, dpi=(dpi, dpi), exif=exif_data)
                 elif extension == 'webp':
                     img.save(output_file,
                              quality=quality, lossless=lossless_webp, exif=exif_data)
