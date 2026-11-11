@@ -1,3 +1,6 @@
+# WAS Node Suite (Revised) 3.0.1 - MODIFIED for preview from custom output_path
+# Change: if output_path is outside ComfyUI/output, copy to temp for preview (type='temp').
+# Real file still saved to your custom path. No symlink needed. Works for any project folder.
 ###########################################################################
 #
 # Revised by Dr.Lt.Data after the original author, WASasquatch, retired.
@@ -7508,12 +7511,44 @@ class WAS_Image_Save:
                 output_files.append(output_file)
 
                 if show_history != 'true' and show_previews == 'true':
-                    subfolder = self.get_subfolder_path(output_file, original_output)
-                    results.append({
-                        "filename": file,
-                        "subfolder": subfolder,
-                        "type": self.type
-                    })
+                    # MODIFIED by Meta AI for Barepixels - WAS_PREVIEW_FIX (Revised 3.0.1)
+                    # If output_path is outside ComfyUI/output (e.g. E:/~AI Projects/elfin),
+                    # ComfyUI /view cannot serve it, so preview fails.
+                    # Fix: copy to temp dir and return type='temp' for preview.
+                    # Real file stays in output_path. Works for any project folder.
+                    try:
+                        _abs_out = os.path.abspath(output_path)
+                        _abs_base = os.path.abspath(original_output)
+                        _is_outside = os.path.commonpath([_abs_out, _abs_base]) != _abs_base
+                    except Exception:
+                        _is_outside = False
+                    if _is_outside:
+                        try:
+                            import folder_paths as _fp
+                            _temp_dir = _fp.get_temp_directory()
+                            _temp_file = os.path.join(_temp_dir, file)
+                            import shutil as _shutil
+                            _shutil.copy2(output_file, _temp_file)
+                            results.append({
+                                "filename": file,
+                                "subfolder": "",
+                                "type": "temp"
+                            })
+                        except Exception as _e:
+                            print(f"[WAS_PREVIEW_FIX] temp preview copy failed: {_e}")
+                            subfolder = self.get_subfolder_path(output_file, original_output)
+                            results.append({
+                                "filename": file,
+                                "subfolder": subfolder,
+                                "type": self.type
+                            })
+                    else:
+                        subfolder = self.get_subfolder_path(output_file, original_output)
+                        results.append({
+                            "filename": file,
+                            "subfolder": subfolder,
+                            "type": self.type
+                        })
 
                 # Update the output image history
                 update_history_output_images(output_file)
@@ -7557,12 +7592,38 @@ class WAS_Image_Save:
 
         if filtered_paths:
             for image_path in filtered_paths:
-                subfolder = self.get_subfolder_path(image_path, self.output_dir)
-                image_data = {
-                    "filename": os.path.basename(image_path),
-                    "subfolder": subfolder,
-                    "type": self.type
-                }
+                # MODIFIED - WAS_PREVIEW_FIX for history previews outside output
+                try:
+                    _abs_img = os.path.abspath(image_path)
+                    _abs_base2 = os.path.abspath(self.output_dir)
+                    _outside2 = os.path.commonpath([_abs_img, _abs_base2]) != _abs_base2
+                except Exception:
+                    _outside2 = False
+                if _outside2:
+                    try:
+                        import folder_paths as _fp2
+                        import shutil as _sh2
+                        _temp2 = os.path.join(_fp2.get_temp_directory(), os.path.basename(image_path))
+                        _sh2.copy2(image_path, _temp2)
+                        image_data = {
+                            "filename": os.path.basename(image_path),
+                            "subfolder": "",
+                            "type": "temp"
+                        }
+                    except Exception:
+                        subfolder = self.get_subfolder_path(image_path, self.output_dir)
+                        image_data = {
+                            "filename": os.path.basename(image_path),
+                            "subfolder": subfolder,
+                            "type": self.type
+                        }
+                else:
+                    subfolder = self.get_subfolder_path(image_path, self.output_dir)
+                    image_data = {
+                        "filename": os.path.basename(image_path),
+                        "subfolder": subfolder,
+                        "type": self.type
+                    }
                 results.append(image_data)
 
         if show_previews == 'true':
@@ -13693,7 +13754,7 @@ class WAS_CLIP_Vision_Input_Switch:
         if boolean:
             return (clip_vision_a, )
         else:
-            return (clip_vision_b,)
+            return (clip_vision_b)
 
 # TEXT INPUT SWITCH
 
